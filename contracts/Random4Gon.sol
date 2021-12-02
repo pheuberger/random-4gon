@@ -50,28 +50,6 @@ contract Random4Gon is ERC721URIStorage {
     '</svg>'
   ];
 
-  string[] fgSvgParts = [
-    '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 100 100"><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" /><stop offset="100%" style="stop-color:#fafafa;stop-opacity:1" /></linearGradient><linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#',
-    ';stop-opacity:1"/><stop offset="100%" style="stop-color:#', 
-    ';stop-opacity:1"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#grad1)" /><polygon fill="url(#grad2)" points="',
-     '"/></svg>'
-  ];
-
-  string[] bgSvgParts = [
-    '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 100 100"><defs><linearGradient id="grad1" ',
-    '><stop offset="0%" style="stop-color:#',
-    ';stop-opacity:1" /><stop offset="100%" style="stop-color:#',
-    ';stop-opacity:1" /></linearGradient></defs><rect width="100%" height="100%" fill="url(#grad1)"/></svg>'
-  ];
-
-  string[] combinedSvgParts = [
-    '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 100 100"><defs><linearGradient id="grad1" ',
-    '><stop offset="0%" style="stop-color:#',
-    ';stop-opacity:1" /><stop offset="100%" style="stop-color:#',
-    ';stop-opacity:1"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#grad1)" /><polygon fill="url(#grad2)" points="',
-     '"/></svg>'
-  ];
-
   string[] bgGradientDirections = [
     'x1="0%" y1="0%" x2="100%" y2="100%"',
     'x1="0%" y1="0%" x2="0%" y2="100%"',
@@ -153,7 +131,7 @@ contract Random4Gon is ERC721URIStorage {
   }
 
   function buildForegroundNftJson(uint256 tokenId, string memory startCol, string memory endCol) private view returns (string memory) {
-    string memory svgString = generateForegroundSvgString(tokenId, startCol, endCol);
+    string memory svgString = assembleForegroundSvgString(tokenId, startCol, endCol);
 
     return Base64.encode(bytes(string(abi.encodePacked(
       '{"name": "', 
@@ -163,17 +141,12 @@ contract Random4Gon is ERC721URIStorage {
       '", "type": "foreground", ',
       '"tokenId": ',
       Strings.toString(tokenId),
-      ', "fgGradientStart": "#',
-      startCol,
-      '", ',
-      '"fgGradientEnd": "#',
-      endCol,
-      '"}'
+      '}'
     ))));
   }
 
   function buildBackgroundNftJson(uint256 tokenId, string memory startCol, string memory endCol, uint8 gradientDirectionIndex) private view returns (string memory) {
-    string memory svgString = generateBackgroundSvgString(endCol, startCol, tokenId, gradientDirectionIndex);
+    string memory svgString = generateBackgroundSvgString(endCol, startCol, gradientDirectionIndex);
 
     return Base64.encode(bytes(string(abi.encodePacked(
       '{"name": "', 
@@ -183,12 +156,7 @@ contract Random4Gon is ERC721URIStorage {
       '", "type": "background", ',
       '"tokenId": ',
       Strings.toString(tokenId),
-      ', "bgGradientStart": "#',
-      endCol,
-      '", ',
-      '"bgGradientEnd": "#',
-      startCol,
-      '"}'
+      '}'
     ))));
   }
 
@@ -196,13 +164,62 @@ contract Random4Gon is ERC721URIStorage {
     assert(gradientDirectionIndex < bgGradientDirections.length);
     string memory direction = bgGradientDirections[gradientDirectionIndex];
 
-    return string(abi.encodePacked(bgSvgParts[0], direction, bgSvgParts[1], startCol, bgSvgParts[2], endCol, bgSvgParts[3]));
+    return string(abi.encodePacked(
+      svgParts[0], 
+      direction, 
+      svgParts[1], 
+      startCol, 
+      svgParts[2], 
+      endCol, 
+      svgParts[3],
+      svgParts[7],
+      svgParts[10]
+    ));
   }
 
-  function generateForegroundSvgString(uint256 tokenId, string memory startCol, string memory endCol) private view returns (string memory) {
+  function assembleForegroundSvgString(uint256 tokenId, string memory startCol, string memory endCol) private view returns (string memory) {
+    string memory svgHeader = generateForegroundSvgHeader();
+    string memory polyPointsPart = assemblePolyPointsString(tokenId);
+
+    return string(abi.encodePacked(
+      svgHeader,
+      startCol,
+      svgParts[5],
+      endCol,
+      polyPointsPart,
+      svgParts[9],
+      svgParts[10]
+    ));
+  }
+
+  function generateForegroundSvgHeader() private view returns (string memory) {
+    return string(abi.encodePacked(
+      svgParts[0], 
+      bgGradientDirections[0],
+      svgParts[1],
+      'ffffff', 
+      svgParts[2], 
+      'fafafa', 
+      svgParts[3], 
+      svgParts[4]
+    ));
+  }
+
+  function assemblePolyPointsString(uint256 tokenId) private view returns (string memory) {
     (string memory p1, string memory p2, string memory p3, string memory p4) = generatePoints(tokenId);
 
-    return string(abi.encodePacked(fgSvgParts[0], startCol, fgSvgParts[1], endCol, fgSvgParts[2], p1, ", ", p2, ", ", p3, ", ", p4, fgSvgParts[3]));
+    return string(abi.encodePacked(
+      svgParts[6],
+      svgParts[7],
+      svgParts[8],
+      p1, 
+      ", ", 
+      p2, 
+      ", ", 
+      p3, 
+      ", ", 
+      p4
+    ));
   }
 
   function generatePoints(uint256 tokenId) private pure returns (string memory, string memory, string memory, string memory) {
